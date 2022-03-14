@@ -83,10 +83,16 @@ static inline void lwtimeout_update_timeout(struct lwtimeout *lwt)
  */
 static inline void lwtimeout_update_ts(struct lwtimeout *lwt)
 {
+	u64 curr = ktime_get_ns();
+
 	raw_spin_lock(&lwt->ts_lock);
-	clear_bit(TIMEOUT_EXPIRED, &lwt->state);
-	lwt->ts = ktime_get_ns();
-	raw_spin_unlock(&lwt->ts_lock);
+	if (curr > lwt->ts) {
+		lwt->ts = curr;
+		raw_spin_unlock(&lwt->ts_lock);
+		clear_bit(TIMEOUT_EXPIRED, &lwt->state);
+	} else {
+		raw_spin_unlock(&lwt->ts_lock);
+	}
 }
 
 /**
